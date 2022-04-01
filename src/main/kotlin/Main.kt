@@ -14,7 +14,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import kotlinx.coroutines.launch
-import my.SocketIO
+import my.network.SocketIO
 import java.time.format.DateTimeFormatter
 
 @Composable
@@ -37,6 +37,7 @@ fun App() {
     }
 
     val io = remember { SocketIO(9999, onError) }
+    val address by produceState<String?>(null) { value = io.address() }
 
     val onReceive: SocketIO.SocketChat.(String)->Unit = { message ->
         println("$key from $address ($connected): $message")
@@ -64,6 +65,8 @@ fun App() {
                             )
                             Text("Подключиться", Modifier.padding(start = 10.dp))
                         }
+                } else address?.let {
+                    Text("Подключайтесь к $it", color = MaterialTheme.colors.primary)
                 }
             }
 

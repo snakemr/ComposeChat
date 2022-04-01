@@ -1,7 +1,9 @@
-package my
+package my.network
 
 import androidx.compose.runtime.mutableStateOf
 import kotlinx.coroutines.*
+import java.net.DatagramSocket
+import java.net.InetAddress
 import java.net.ServerSocket
 import java.net.Socket
 import java.time.LocalDateTime
@@ -20,6 +22,14 @@ class SocketIO(
 
     private var connectState = mutableStateOf(false)
     val connected: Boolean get() = connectState.value
+
+
+    suspend fun address(): String? = withContext(Dispatchers.IO) {
+        DatagramSocket().run {
+            connect(InetAddress.getByName("8.8.8.8"), 10002)
+            localAddress?.hostAddress
+        }
+    }
 
     fun listen(onReceive: SocketChat.(String)->Unit) = if (job != null)
         onError?.invoke("job is busy")
@@ -129,7 +139,7 @@ class SocketIO(
             }
             delay(10)
         }
-        chat.connectState.value = false
+        chat.markAsDisconnected()
         chat.onReceive("disconnected")
     }
 
@@ -141,9 +151,9 @@ class SocketIO(
         val key = connection.toString()
         val address: String? = connection.inetAddress.hostAddress
         private val writer = connection.getOutputStream().bufferedWriter()
-        internal var connectState = mutableStateOf(true)
+        private var connectState = mutableStateOf(true)
         val connected: Boolean get() = connectState.value
-        val created = LocalDateTime.now()
+        val created: LocalDateTime = LocalDateTime.now()
         fun send(message: String) {
             if (connected) try {
                 writer.write(message)
@@ -155,6 +165,9 @@ class SocketIO(
         }
         fun moderatorDisconnect() {
             if (connected) disconnect(key)
+            connectState.value = false
+        }
+        fun markAsDisconnected() {
             connectState.value = false
         }
         override fun toString() = key
